@@ -1,12 +1,13 @@
 import os
 import itertools
 import requests
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+# دیاریکردنی ڕێڕەوی سەرەکی پڕۆژەکە بۆ ئەوەی index.html بە تنهایی بخوێنرێتەوە
+app = Flask(__name__, template_folder='.', static_folder='.')
 
 # کۆکردنەوەی کلیلەکان بە شێوازێکی پارێزراو
 api_list = []
