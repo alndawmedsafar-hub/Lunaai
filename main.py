@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name2__ if '__name2__' in locals() else __name__)
+app = Flask(__name__)
 
 # کۆکردنەوەی کلیلەکان بە شێوازێکی پارێزراو
 api_list = []
