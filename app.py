@@ -1,7 +1,7 @@
 import os
 import itertools
 import requests
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, send_file, request, jsonify
 from dotenv import load_dotenv
 
 # بارکردنی زانیارییەکان لە فایلی .env
@@ -98,7 +98,7 @@ def call_luma_factory(prompt):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return send_file('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
