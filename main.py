@@ -1,65 +1,55 @@
 import os
 import itertools
 import requests
-from flask import Flask, send_file, request, jsonify
+from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 
-# بارکردنی زانیارییەکان لە فایلی .env
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name2__ if '__name2__' in locals() else __name__)
 
-# کارگەی کلیلەکانی LumaAI بە شێوازێکی دینامیکی
-massive_api_pool = itertools.cycle([
-    # 1. کلیلەکانی Gemini (١٠ کلیل)
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_1", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_2", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_3", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_4", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_5", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_6", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_7", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_8", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_9", "")},
-    {"type": "gemini", "key": os.getenv("GEMINI_KEY_10", "")},
-    
-    # 2. کلیلەکانی Groq (٩ کلیل)
-    {"type": "groq", "key": os.getenv("GROQ_KEY_1", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_2", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_3", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_4", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_5", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_6", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_7", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_8", "")},
-    {"type": "groq", "key": os.getenv("GROQ_KEY_9", "")},
+# کۆکردنەوەی کلیلەکان بە شێوازێکی پارێزراو
+api_list = []
 
-    # 3. کلیلەکانی OpenRouter (١٠ کلیل)
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_1", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_2", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_3", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_4", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_5", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_6", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_7", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_8", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_9", "")},
-    {"type": "openrouter", "key": os.getenv("OPENROUTER_KEY_10", "")},
+# زیادکردنی کلیلەکانی Gemini ئەگەر هەبن
+for i in range(1, 11):
+    key = os.getenv(f"GEMINI_KEY_{i}")
+    if key:
+        api_list.append({"type": "gemini", "key": key})
 
-    # 4. کلیلی Cohere
-    {"type": "cohere", "key": os.getenv("COHERE_KEY", "")}
-])
+# زیادکردنی کلیلەکانی Groq ئەگەر هەبن
+for i in range(1, 10):
+    key = os.getenv(f"GROQ_KEY_{i}")
+    if key:
+        api_list.append({"type": "groq", "key": key})
+
+# زیادکردنی کلیلەکانی OpenRouter ئەگەر هەبن
+for i in range(1, 11):
+    key = os.getenv(f"OPENROUTER_KEY_{i}")
+    if key:
+        api_list.append({"type": "openrouter", "key": key})
+
+# کلیلی Cohere
+cohere_key = os.getenv("COHERE_KEY")
+if cohere_key:
+    api_list.append({"type": "cohere", "key": cohere_key})
+
+# ئەگەر هیچ کلیلێک نەدۆزرایەوە
+if api_list:
+    massive_api_pool = itertools.cycle(api_list)
+else:
+    massive_api_pool = None
 
 def call_luma_factory(prompt):
-    total_attempts = 30
+    if not massive_api_pool:
+        return "❌ هیچ کلیلێکی API لە سێرڤەردا نەدۆزراوەتەوە! تکایە سەیری Variables بکە."
+        
+    total_attempts = len(api_list) if api_list else 10
     for _ in range(total_attempts):
         item = next(massive_api_pool)
         provider = item["type"]
         key = item["key"]
         
-        if not key:
-            continue
-            
         try:
             if provider == "gemini":
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
@@ -90,7 +80,6 @@ def call_luma_factory(prompt):
                 res = requests.post(url, headers=headers, json=payload)
                 if res.status_code == 200:
                     return res.json()['generations'][0]['text']
-                    
         except Exception:
             continue
             
@@ -98,7 +87,7 @@ def call_luma_factory(prompt):
 
 @app.route('/')
 def home():
-    return send_file('index.html')
+    return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
